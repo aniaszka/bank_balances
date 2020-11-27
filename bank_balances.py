@@ -1,5 +1,5 @@
 import pandas as pd  # version 1.0.1
-# in pandas 1.1.4 date for INTESA and BMG doesn't work after merge in "final"
+# in pandas 1.1.4 dates for INTESA and BMG doesn't work after merge in "final"
 from datetime import datetime
 
 # TODO find repetitions and replace them with functions
@@ -89,56 +89,45 @@ san = pd.read_csv(santanderfilename, skiprows=[0, 1, 17, 18, 19],
                   usecols=['Data', 'Numer rachunku', 'Saldo', 'Unnamed: 8'],
                   parse_dates=True, sep=';', encoding='ANSI', )
 
-print(san)
-san = san.rename(columns={'Numer rachunku': "Account",
-                          "Saldo": "saldo",
-                          'Data': 'data',
-                          'Unnamed: 8': 'Currency'})
-
-san['saldo'] = san['saldo'].apply(lambda x: x.replace(' ', ''))
-san['saldo'] = san['saldo'].apply(lambda x: x.replace(',', '.'))
-san['saldo'] = pd.to_numeric(san['saldo'])
-
-san['Account'] = san['Account'].apply(lambda x: x.replace(' ', ''))
-
-san = san.set_index('Account')
-
-san['data'] = pd.to_datetime(san['data'], format='%Y-%m-%d')
-
-# In Santander file the date is only in the first row.
-# It must be added into the next rows
-san['data'] = san.fillna(method="ffill")
-print()
-print('sprawdzam co mamy w Santanderze\n', san, '\n')
-
-# In Santander VAT accounts are in a different file
 santandervatfilename = 'Santander_VAT_salda_zamkniecie.csv'
 sanvat = pd.read_csv(santandervatfilename, skiprows=[0, 1, 6, 7, 8],
                      usecols=['Data', 'Numer rachunku', 'Saldo', 'Unnamed: 8'],
                      parse_dates=True, sep=';', encoding='ANSI', )
 
-sanvat = sanvat.rename(columns={'Numer rachunku': "Account",
-                                "Saldo": "saldo",
-                                'Data': 'data',
-                                'Unnamed: 8': 'Currency'})
 
-sanvat['saldo'] = sanvat['saldo'].apply(lambda x: x.replace(',', '.'))
-sanvat['saldo'] = sanvat['saldo'].apply(lambda x: x.replace(' ', ''))
-sanvat['saldo'] = pd.to_numeric(sanvat['saldo'])
 
-sanvat['Account'] = sanvat['Account'].apply(lambda x: x.replace(' ', ''))
+san_tot = pd.concat([san,sanvat])
 
-sanvat = sanvat.set_index('Account')
+print()
+print(san_tot)
+print()
 
-sanvat['data'] = pd.to_datetime(sanvat['data'],
-                                format='%Y-%m-%d')
+san_tot = san_tot.rename(columns={'Numer rachunku': "Account",
+                          "Saldo": "saldo",
+                          'Data': 'data',
+                          'Unnamed: 8': 'Currency'})
+
+print('zmienione nazwy kolumn')
+print(san_tot)
+print()
+
+
+san_tot['saldo'] = san_tot['saldo'].apply(lambda x: x.replace(' ', ''))
+san_tot['saldo'] = san_tot['saldo'].apply(lambda x: x.replace(',', '.'))
+san_tot['saldo'] = pd.to_numeric(san_tot['saldo'])
+
+san_tot['Account'] = san_tot['Account'].apply(lambda x: x.replace(' ', ''))
+
+san_tot = san_tot.set_index('Account')
+
+san_tot['data'] = pd.to_datetime(san_tot['data'], format='%Y-%m-%d')
 
 # In Santander file the date is only in the first row.
 # It must be added into the next rows
-sanvat['data'] = sanvat.fillna(method="ffill")
-
+san_tot['data'] = san_tot.fillna(method="ffill")
 print()
-print('sprawdzam co mamy na rachunkach VAT w Santanderze\n', sanvat, '\n')
+print('sprawdzam co mamy w Santanderze\n', san_tot, '\n')
+
 
 # import bits of information from Santander bank
 bmgfilename = 'BMG_salda_zamkniecie.csv'
@@ -165,19 +154,7 @@ intesa = pd.read_csv(intesafilename, parse_dates=True, sep=';', encoding='ANSI')
 
 intesa = intesa.set_index('Account')
 
-print()
-print(intesa['data'])
-print()
-
 intesa['data'] = pd.to_datetime(intesa['data'], format='%Y-%m-%d')
-
-print('intesa')
-print(intesa['data'])
-print()
-
-print('ing')
-print(ing['data'])
-print()
 
 print('\nsprawdzam co się wczytuje z INTESY\n\n', intesa, '\n\n')
 
@@ -186,8 +163,7 @@ print('\npolaczone tabele\n')
 
 final = balances.merge(ing[['data', 'saldo']], on='Account', how='outer')
 final = final.fillna(citi)
-final = final.fillna(san)
-final = final.fillna(sanvat)
+final = final.fillna(san_tot)
 final = final.fillna(bmg)
 final = final.fillna(intesa)
 
@@ -364,3 +340,5 @@ print()
 print('export dwóch tabel do csv')
 final.to_csv('output.csv')
 final_types.to_csv('output_types.csv')
+
+
