@@ -36,15 +36,10 @@ ing = ing.rename(columns={'rachunek ING "NRB" (26 znaków)': "Account",
 
 ing = ing.set_index('Account')
 
-print('\nING po pierwszych przeróbkach\n')
-print(ing)
-print(ing['saldo'])
-
 # amount format adjusted
 # empty cells need te be removed before next steps to avoid errors
 ing = ing.dropna(subset=['saldo'])
 ing['saldo'] = ing['saldo'].apply(lambda x: x.replace(',', '.'))
-print(ing['saldo'])
 ing['saldo'] = pd.to_numeric(ing['saldo'])
 
 # date format adjusted
@@ -59,8 +54,6 @@ ing = ing.reset_index().drop_duplicates(subset='Account',
                                         keep='first').set_index('Account')
 
 print('\nDane z ING bez duplikatów wedłgu powtórzeń w indeksie\n', ing, '\n')
-
-print()
 
 # import bits of information from CITI bank
 citifilename = 'CITI_salda_zamkniecie.csv'
@@ -94,23 +87,12 @@ sanvat = pd.read_csv(santandervatfilename, skiprows=[0, 1, 6, 7, 8],
                      usecols=['Data', 'Numer rachunku', 'Saldo', 'Unnamed: 8'],
                      parse_dates=True, sep=';', encoding='ANSI', )
 
-
-
 san_tot = pd.concat([san,sanvat])
-
-print()
-print(san_tot)
-print()
 
 san_tot = san_tot.rename(columns={'Numer rachunku': "Account",
                           "Saldo": "saldo",
                           'Data': 'data',
                           'Unnamed: 8': 'Currency'})
-
-print('zmienione nazwy kolumn')
-print(san_tot)
-print()
-
 
 san_tot['saldo'] = san_tot['saldo'].apply(lambda x: x.replace(' ', ''))
 san_tot['saldo'] = san_tot['saldo'].apply(lambda x: x.replace(',', '.'))
@@ -159,7 +141,7 @@ intesa['data'] = pd.to_datetime(intesa['data'], format='%Y-%m-%d')
 print('\nsprawdzam co się wczytuje z INTESY\n\n', intesa, '\n\n')
 
 # merge all tables
-print('\npolaczone tabele\n')
+print('\npołączone tabele\n')
 
 final = balances.merge(ing[['data', 'saldo']], on='Account', how='outer')
 final = final.fillna(citi)
@@ -168,16 +150,7 @@ final = final.fillna(bmg)
 final = final.fillna(intesa)
 
 # date format corrected
-print()
-print(final)
-print()
-
-print('final')
-print(final['data'])
-print()
-
 final['data'] = pd.to_datetime(final['data'].dt.strftime('%Y/%m/%d'))
-
 print(final)
 
 # Add deposits from CITI
@@ -212,13 +185,8 @@ final = final.merge(citidep['depozyt'], on='Account', how='outer')
 final['depozyt'] = final['depozyt'].fillna(0)
 final['saldo'] = final['saldo'].fillna(0)
 
-print()
-print(final, end='\n\n')
-
 final['total_balance'] = final.apply(lambda x: x['saldo'] + x['depozyt'],
                                      axis=1)
-print()
-print(final, end='\n\n')
 
 rates = pd.read_csv('kursy_zamkniecie.csv')
 rates = rates.set_index('para')
@@ -310,11 +278,8 @@ print('\nprzed mergem\n')
 print(final)
 print()
 
-# UWAGA: trzeba po drodze na chwilę usunąć index. bez tego merge likwiduje
-# index!!!! który jest numerem rachunku
-# dorzucam how='left' bo bez tego usuwa wiersze, które nie miały konta GL
-
-# index must be reset before merging, otherways it would disappear
+# index must be reset before merging, otherwise it would disappear
+# "how='left'" is needed otherwise rows without "GL_account would disappear"
 final = final.reset_index().merge(sap, on='GL_account', how='left')
 
 print('\npo mergu\n')
@@ -327,10 +292,10 @@ final = final.set_index('Account')
 print(final)
 print()
 
-final_bez_purpose = final.drop(['Purpose'], axis=1)
-
-print(final_bez_purpose)
-print()
+# final_bez_purpose = final.drop(['Purpose'], axis=1)
+#
+# print(final_bez_purpose)
+# print()
 
 final_types = final[['Type', 'total_pln', 'total_eur', 'total_usd']]
 final_types = final_types.groupby('Type').sum()
