@@ -292,11 +292,6 @@ final = final.set_index('Account')
 print(final)
 print()
 
-# final_bez_purpose = final.drop(['Purpose'], axis=1)
-#
-# print(final_bez_purpose)
-# print()
-
 final_types = final[['Type', 'total_pln', 'total_eur', 'total_usd']]
 final_types = final_types.groupby('Type').sum()
 print(final_types)
